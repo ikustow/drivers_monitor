@@ -1,0 +1,17 @@
+# Environment variables
+.env
+.env.*
+
+# Logs
+*.log
+
+# Virtual Environment
+venv/
+ENV/
+
+# Cache
+__pycache__/
+*.pyc 
+
+# Project specific
+secret_keys/
