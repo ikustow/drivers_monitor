@@ -1,78 +1,153 @@
 import asyncio
-from typing import List
+from typing import List, Union, Dict, Any
 from pydantic import BaseModel, Field
-from agents import Agent, Runner
+from agents import Agent, Runner, RunContextWrapper, FunctionTool
 from dotenv import load_dotenv
 import os
+import json
 
 # Load environment variables
-# Set model choice
 model = os.getenv('MODEL_NAME', 'gpt-4o-mini')
 
-# --- Structured Output ---
+# --- Data Models ---
+class DriverEvent(BaseModel):
+    """Single driver event data"""
+    timestamp: str = Field(description="ISO 8601 timestamp of the event")
+    event: str = Field(description="Description of the driver's condition or behavior")
+
 class DriverHealthReport(BaseModel):
     """Driver condition evaluation and improvement recommendations"""
     score: int = Field(description="Overall driver health and behavior score from 1 (poor) to 10 (excellent)")
     summary: str = Field(description="Brief overview of the driver's current condition")
     recommendations: List[str] = Field(description="List of actionable, personalized suggestions")
 
+class ChatResponse(BaseModel):
+    """Response for regular chat interactions"""
+    message: str = Field(description="The assistant's response message")
+    recommendations: List[str] = Field(description="List of recommendations if applicable")
 
-# --- Agent for Driver State Monitoring ---
-driver_monitor_agent = Agent(
-    name="Driver Health Monitor",
+# --- Specialized Agents ---
+health_advisor_agent = Agent(
+    name="Health Advisor",
     instructions="""
-    You are a driver monitoring expert.
+    You are a supportive health advisor for drivers. Your role is to:
+    1. Provide helpful advice about driver health and safety
+    2. Answer questions about driver monitoring and health management
+    3. Offer practical recommendations for maintaining good health while driving
+    4. Maintain a professional but friendly tone
+    
+    Focus on practical, actionable advice that drivers can implement immediately.
+    """,
+    model=model,
+    output_type=ChatResponse
+)
 
-    You receive input as a JSON array of events, where each event includes:
-    - a timestamp in ISO 8601 format (e.g., '2025-03-28T14:30:00')
-    - a short description of the driver's condition or behavior at that time.
-
-    Example events: "fell asleep at the wheel", "high blood pressure", "took a rest break", 
-    "ate a meal", "tested positive for alcohol", "reported stress", "feeling good", etc.
-
-    Your task:
-    1. Analyze all events to assess the driver's overall condition.
-    2. Assign a health and behavior score from 1 to 10, where 10 = fully alert and healthy, 1 = critical or dangerous.
-    3. Provide a concise summary of the findings.
-    4. Recommend specific actions: rest, medical check, replace driver, adjust behavior, etc.
-
-    Be objective but professional and supportive. Consider the frequency and severity of negative events.
+event_analyzer_agent = Agent(
+    name="Event Analyzer",
+    instructions="""
+    You are a driver monitoring expert who analyzes events to assess driver health.
+    
+    For each set of events, you should:
+    1. Analyze the sequence of events to assess the driver's overall condition
+    2. Assign a health and behavior score from 1 to 10
+    3. Provide a concise summary of the findings
+    4. Recommend specific actions based on the events
+    
+    Be objective but professional. Consider the frequency and severity of negative events.
     """,
     model=model,
     output_type=DriverHealthReport
 )
 
-example_events = [
+# --- Function Tools ---
+async def process_events(ctx: RunContextWrapper[Any], args: str) -> str:
+    """Process driver events and return health report"""
+    data = json.loads(args)
+    events = data["events"]
+    query = "\n".join(f"{event['timestamp']}: {event['event']}" for event in events)
+    result = await Runner.run(event_analyzer_agent, query)
+    return result.final_output.model_dump_json()
+
+async def handle_chat(ctx: RunContextWrapper[Any], args: str) -> str:
+    """Handle regular chat messages"""
+    data = json.loads(args)
+    message = data["message"]
+    result = await Runner.run(health_advisor_agent, message)
+    return result.final_output.model_dump_json()
+
+# --- Main Orchestrator Agent ---
+orchestrator_agent = Agent(
+    name="Driver Health Orchestrator",
+    instructions="""
+    You are the main driver health monitoring system. You can handle both event analysis and general health advice.
+    
+    When receiving input:
+    1. If it's a JSON array of events, use the event_analyzer tool
+    2. If it's a regular message, use the health_advisor tool
+    
+    Always provide clear, helpful responses and maintain a professional tone.
+    """,
+    model=model,
+    tools=[
+        FunctionTool(
+            name="event_analyzer",
+            description="Analyze driver events and generate health report",
+            params_json_schema={
+                "type": "object",
+                "properties": {
+                    "events": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "timestamp": {"type": "string"},
+                                "event": {"type": "string"}
+                            },
+                            "required": ["timestamp", "event"],
+                            "additionalProperties": False
+                        }
+                    }
+                },
+                "required": ["events"],
+                "additionalProperties": False
+            },
+            on_invoke_tool=process_events,
+        ),
+        FunctionTool(
+            name="health_advisor",
+            description="Provide health advice and recommendations",
+            params_json_schema={
+                "type": "object",
+                "properties": {
+                    "message": {
+                        "type": "string",
+                        "description": "User's health-related question or concern"
+                    }
+                },
+                "required": ["message"],
+                "additionalProperties": False
+            },
+            on_invoke_tool=handle_chat,
+        ),
+    ]
+)
+
+user_input = '''
+[
     {"timestamp": "2025-03-25T08:15:00", "event": "fell asleep at the wheel"},
-    {"timestamp": "2025-03-26T10:00:00", "event": "high blood pressure"},
-    {"timestamp": "2025-03-27T12:30:00", "event": "took a rest break"},
-    {"timestamp": "2025-03-28T09:45:00", "event": "feeling good"}
+    {"timestamp": "2025-03-26T10:00:00", "event": "high blood pressure"}
 ]
+'''
 
 async def main():
-    # Формируем строку для ввода
-    query = "\n".join(f"{event['timestamp']}: {event['event']}" for event in example_events)
-
     print("\n" + "*"*50)
-    print("DRIVER HEALTH CHECK")
+    print("DRIVER HEALTH MONITOR")
     print("="*50)
-
-    # Запуск агента с текстовым вводом
-    result = await Runner.run(driver_monitor_agent, query)
-
-    print("\nSTRUCTURED RESPONSE:")
+    print("Enter your message or JSON events (type 'exit' to quit):")
+    result = await Runner.run(orchestrator_agent, user_input)
+    print("\nRESPONSE:")
     print(result.final_output)
-
-    print("\nSUMMARY:")
-    print(result.final_output.summary)
-
-    print("\nSCORE:")
-    print(result.final_output.score)
-
-    print("\nRECOMMENDATIONS:")
-    for rec in result.final_output.recommendations:
-        print(f"- {rec}")
-
+  
 
 if __name__ == "__main__":
     asyncio.run(main())
