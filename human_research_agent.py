@@ -27,7 +27,7 @@ class ChatResponse(BaseModel):
     recommendations: List[str] = Field(description="List of recommendations if applicable")
 
 # --- Specialized Agents ---
-health_advisor_agent = Agent(
+health_advisor_agent_depr = Agent(
     name="Health Advisor",
     instructions="""
     You are a supportive health advisor for drivers. Your role is to:
