@@ -4,6 +4,10 @@ from .drivers_health_agent import health_advisor_agent
 from .driver_agent_tools import add_driver_report
 from .example_data import example_events
 
+
+
+
+
 async def main():
     # Формируем строку для ввода
     query = f"Driver ID: {example_events['driver_id']}\nVehicle ID: {example_events['vehicle_id']}\n\n"
