@@ -16,7 +16,6 @@ graph TD
     C --> E[Driver Data]
     D --> F[Firebase Storage]
     E --> F
-    F --> H
 ```
 
 ## Components
