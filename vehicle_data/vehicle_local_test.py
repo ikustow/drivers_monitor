@@ -15,7 +15,8 @@ example_events = {
         {"timestamp": "2025-03-29T10:25:00", "vehicle_part": "fuel system", "description": "fuel efficiency dropped significantly"},
     ]
 }
-# Тестовая функция
+
+# Test Function / Тестовая функция
 async def test_vehicle_check():
     print("\n🚗 VEHICLE CHECK STARTING")
     print("=" * 50)
@@ -40,8 +41,10 @@ async def test_vehicle_check():
         for r in report.recommendations:
             print(f"  - {r}")
         print("-" * 40)
-     # ✅ Сохраняем в Firestore
+
+    # Save to Firestore / ✅ Сохраняем в Firestore
     save_vehicle_report_group_to_firestore(result.final_output)
-# Запуск
+
+# Run / Запуск
 if __name__ == "__main__":
     asyncio.run(test_vehicle_check())

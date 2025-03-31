@@ -9,8 +9,7 @@ import asyncio
 load_dotenv()
 model = os.getenv('MODEL_NAME', 'gpt-4o-mini')
 
-
-# Подмодели событий
+# Event Submodels / Подмодели событий
 class DriverEvent(BaseModel):
     timestamp: str
     driver_id: int
@@ -23,12 +22,12 @@ class VehicleEvent(BaseModel):
     vehicle_part: str
     description: str
 
-# Главный выходной объект
+# Main Output Object / Главный выходной объект
 class LogClassifierOutput(BaseModel):
     driver_events: List[DriverEvent]
     vehicle_events: List[VehicleEvent]
 
-# Агент-оркестратор
+# Orchestrator Agent / Агент-оркестратор
 log_classifier_agent = Agent(
     name="Log Classifier Agent",
     model=model,
@@ -49,10 +48,7 @@ log_classifier_agent = Agent(
     """
 )
 
-
-
-
-# Асинхронная функция для теста
+# Async Test Function / Асинхронная функция для теста
 async def test_log_classifier():
     print("\n🧠 RUNNING LOG CLASSIFIER AGENT")
     print("=" * 50)
@@ -61,16 +57,16 @@ async def test_log_classifier():
 
     result = await Runner.run(log_classifier_agent, query)
 
-    # Выводим события водителя
+    # Print Driver Events / Выводим события водителя
     print("\n👤 DRIVER EVENTS:")
     for e in result.final_output.driver_events:
         print(f"- [{e.timestamp}] Driver {e.driver_id} in Vehicle {e.vehicle_id}: {e.event}")
 
-    # Выводим события по машине
+    # Print Vehicle Events / Выводим события по машине
     print("\n🚗 VEHICLE EVENTS:")
     for e in result.final_output.vehicle_events:
         print(f"- [{e.timestamp}] Vehicle {e.vehicle_id} — {e.vehicle_part}: {e.description}")
 
-# Запуск
+# Run / Запуск
 if __name__ == "__main__":
     asyncio.run(test_log_classifier())

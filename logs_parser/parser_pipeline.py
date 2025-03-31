@@ -10,7 +10,7 @@ from vehicle_data.vehicle_check_agent import vehicle_check_agent
 import asyncio
 from driver_data.driver_agent_tools import add_driver_report
 from vehicle_data.vehicle_agent_tools import save_vehicle_report_group_to_firestore
-# Пример сырых логов
+# Example raw logs / Пример сырых логов
 raw_logs = [
     {
         "timestamp": "2025-03-25T08:15:00",
@@ -48,7 +48,7 @@ async def run_full_pipeline(raw_logs):
     print("\n🚀 STARTING FULL PIPELINE")
     print("=" * 60)
 
-    # Шаг 1: Классификация логов
+    # Step 1: Log Classification / Шаг 1: Классификация логов
     print("\n📂 Classifying raw logs...")
     query = "\n".join(
         f"[{log['timestamp']}] Vehicle {log['vehicle_id']}, Driver {log['driver_id']}: {log['message']}"
@@ -57,11 +57,11 @@ async def run_full_pipeline(raw_logs):
     classification_result = await Runner.run(log_classifier_agent, query)
     classified = classification_result.final_output
     print(f"Classified: {classified}")
-    # Шаг 2: Форматирование данных
+    # Step 2: Data Formatting / Шаг 2: Форматирование данных
     driver_input = build_driver_events_input(classified.driver_events) if classified.driver_events else None
     vehicle_input = build_vehicle_events_input(classified.vehicle_events) if classified.vehicle_events else None
 
-    # Шаг 3: Передаём в агентов
+    # Step 3: Pass to Agents / Шаг 3: Передаём в агентов
     if driver_input:
         print("\n👤 Running driver health agent...")
         driver_query = f"Driver ID: {driver_input['driver_id']}\nVehicle ID: {driver_input['vehicle_id']}\n\n"

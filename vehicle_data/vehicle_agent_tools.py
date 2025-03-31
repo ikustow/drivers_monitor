@@ -1,42 +1,39 @@
-from firebase_admin import firestore, credentials, initialize_app
+import firebase_admin
+from firebase_admin import credentials, firestore
 from datetime import datetime
 from typing import List, Union
-import firebase_admin
 
-# Инициализация Firebase (однократно)
-def init_firestore():
-    if not firebase_admin._apps:
-        cred =  credentials.Certificate("secret_keys/drivers-monitor-1w5kqr-firebase-adminsdk-fbsvc-55696da9c1.json")
-        initialize_app(cred)
+# Firebase initialization (safe)
+if not firebase_admin._apps:
+    cred = credentials.Certificate("secret_keys/drivers-monitor-1w5kqr-firebase-adminsdk-fbsvc-55696da9c1.json")
+    firebase_admin.initialize_app(cred)
+
+db = firestore.client()
 
 def save_vehicle_report_group_to_firestore(reports: List[Union[dict, object]]):
-    init_firestore()
-    db = firestore.client()
-
     if not reports:
-        print("⚠️ No reports to save.")
         return
 
-    # Преобразуем каждый отчет в словарь
-    parsed_reports = []
-    vehicle_id = None
-
+    # Convert each report to dictionary / Преобразуем каждый отчет в словарь
+    reports_data = []
     for report in reports:
-        data = report.dict() if hasattr(report, "dict") else dict(report)
+        if isinstance(report, dict):
+            reports_data.append(report)
+        else:
+            reports_data.append(report.dict())
 
-        vehicle_id = vehicle_id or data.get("vehicle_id")  # берем первый попавшийся
-        parsed_reports.append({
-            "vehicle_part": data["vehicle_part"],
-            "health_score": data["health_score"],
-            "summary": data["summary"],
-            "recommendations": data["recommendations"]
-        })
+    # Get vehicle_id from first report / vehicle_id = vehicle_id or data.get("vehicle_id")  # берем первый попавшийся
+    vehicle_id = reports_data[0].get("vehicle_id")
+    if not vehicle_id:
+        return
 
-    doc_data = {
+    # Create a new document with timestamp
+    timestamp = datetime.now().isoformat()
+    doc_ref = db.collection("vehicle_reports").document()
+    doc_ref.set({
         "vehicle_id": vehicle_id,
-        "created_at": datetime.utcnow(),
-        "reports": parsed_reports
-    }
+        "timestamp": timestamp,
+        "reports": reports_data
+    })
 
-    db.collection("vehicle_reports").add(doc_data)
-    print(f"✅ Saved {len(parsed_reports)} report(s) in one Firestore document.")
+    print(f"✅ Saved {len(reports_data)} report(s) in one Firestore document.")

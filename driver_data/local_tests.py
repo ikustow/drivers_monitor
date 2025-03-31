@@ -9,7 +9,7 @@ from .example_data import example_events
 
 
 async def main():
-    # Формируем строку для ввода
+    # Form input string / Формируем строку для ввода
     query = f"Driver ID: {example_events['driver_id']}\nVehicle ID: {example_events['vehicle_id']}\n\n"
     query += "\n".join(f"{event['timestamp']}: {event['event']}" for event in example_events["events"])
 
@@ -17,7 +17,7 @@ async def main():
     print("DRIVER HEALTH CHECK")
     print("="*50)
 
-    # Запуск агента с текстовым вводом
+    # Run agent with text input / Запуск агента с текстовым вводом
     result = await Runner.run(health_advisor_agent, query)
 
     print("\nSTRUCTURED RESPONSE:")
