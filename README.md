@@ -16,7 +16,6 @@ graph TD
     C --> E[Driver Data]
     D --> F[Firebase Storage]
     E --> F
-    G[Human Research Agent] --> H[Analysis Results]
     F --> H
 ```
 
@@ -37,10 +36,53 @@ graph TD
 - Separate storage for vehicle and driver data
 - Real-time data synchronization
 
-### 4. Human Research Agent
-- Advanced analysis of collected data
-- Generates insights and recommendations
-- Provides human-readable reports
+
+## Specialized Agents
+
+### Vehicle Data Agent
+The Vehicle Data Agent is responsible for monitoring and analyzing vehicle health and performance:
+
+#### Features
+- Monitors key vehicle components:
+  - Tires
+  - Engine
+  - Fuel system
+  - Brakes
+  - Battery
+- Generates health scores (1-10) for each component
+- Provides detailed condition summaries
+- Offers actionable maintenance recommendations
+
+#### Output Format
+```python
+{
+    "vehicle_id": int,
+    "vehicle_part": str,
+    "health_score": int,  # 1-10
+    "summary": str,
+    "recommendations": List[str]
+}
+```
+
+### Driver Data Agent
+The Driver Data Agent focuses on monitoring driver behavior and health:
+
+#### Features
+- Tracks driver events and conditions
+- Evaluates overall driver performance
+- Monitors driver health and behavior patterns
+- Generates personalized improvement recommendations
+
+#### Output Format
+```python
+{
+    "driver_id": int,
+    "vehicle_id": int,
+    "score": int,  # 1-10
+    "summary": str,
+    "recommendations": List[str]
+}
+```
 
 ## Project Structure
 
@@ -52,7 +94,15 @@ drivers_monitor/
 │   ├── parser_agent_tools.py
 │   └── __init__.py
 ├── vehicle_data/
+│   ├── vehicle_check_agent.py
+│   ├── vehicle_agent_tools.py
+│   ├── vehicle_local_test.py
+│   └── __init__.py
 ├── driver_data/
+│   ├── drivers_health_agent.py
+│   ├── driver_agent_tools.py
+│   ├── local_tests.py
+│   └── __init__.py
 ├── secret_keys/
 └── .venv/
 ```
